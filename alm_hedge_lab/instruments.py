@@ -65,3 +65,32 @@ def level_annuity(
     times = np.arange(1, periods + 1, dtype=float) / payments_per_year
     amounts = np.full(periods, annual_payment / payments_per_year)
     return CashflowPosition(name, times, amounts)
+
+
+def declining_annuity(
+    name: str,
+    first_payment: float,
+    years: int,
+    annual_decline: float = 0.02,
+) -> CashflowPosition:
+    if years <= 0 or first_payment <= 0:
+        raise ValueError("years and first payment must be positive")
+    if not 0 <= annual_decline < 1:
+        raise ValueError("annual decline must be between zero and one")
+    times = np.arange(1, years + 1, dtype=float)
+    amounts = first_payment * (1 - annual_decline) ** np.arange(years)
+    return CashflowPosition(name, times, amounts)
+
+
+def payer_swap(
+    name: str,
+    notional: float,
+    fixed_rate: float,
+    maturity: int,
+    payments_per_year: int = 2,
+) -> CashflowPosition:
+    """Approximate a receive-floating, pay-fixed swap as a par floater less fixed coupons."""
+    fixed_leg = fixed_rate_bond(name, notional, fixed_rate, maturity, payments_per_year)
+    amounts = -fixed_leg.amounts
+    amounts[-1] += notional
+    return CashflowPosition(name, fixed_leg.times, amounts)

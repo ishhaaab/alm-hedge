@@ -42,6 +42,12 @@ class ZeroCurve:
     def parallel_bump(self, basis_points: float) -> ZeroCurve:
         return ZeroCurve(self.tenors, self.rates + basis_points / 10_000)
 
+    def shifted(self, basis_points: ArrayLike) -> ZeroCurve:
+        shifts = np.asarray(basis_points, dtype=float)
+        if shifts.shape != self.rates.shape:
+            raise ValueError("shifts must match the curve tenors")
+        return ZeroCurve(self.tenors, self.rates + shifts / 10_000)
+
     def tenor_bump(self, tenor: float, basis_points: float) -> ZeroCurve:
         matches = np.flatnonzero(np.isclose(self.tenors, tenor, rtol=0, atol=1e-12))
         if len(matches) != 1:
