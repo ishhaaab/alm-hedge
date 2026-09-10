@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from alm_hedge_lab.curves import ZeroCurve
-from alm_hedge_lab.instruments import CashflowPosition, fixed_rate_bond, level_annuity
+from alm_hedge_lab.instruments import CashflowPosition, fixed_rate_bond, level_annuity, payer_swap
 
 
 def test_cashflow_position_discounts_each_payment() -> None:
@@ -23,3 +23,10 @@ def test_annuity_splits_annual_payment_by_frequency() -> None:
     annuity = level_annuity("liability", 12_000, 2, 12)
     assert len(annuity.times) == 24
     np.testing.assert_allclose(annuity.amounts, 1_000)
+
+
+def test_payer_swap_is_near_par_when_fixed_rate_matches_curve() -> None:
+    curve = ZeroCurve([0.5, 5], [0.04, 0.04])
+    par_rate = 2 * (np.exp(0.04 / 2) - 1)
+    swap = payer_swap("5Y payer", 1_000_000, par_rate, 5)
+    assert swap.present_value(curve) == pytest.approx(0, abs=0.01)

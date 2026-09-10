@@ -89,8 +89,8 @@ def payer_swap(
     maturity: int,
     payments_per_year: int = 2,
 ) -> CashflowPosition:
-    """Approximate a receive-floating, pay-fixed swap as a par floater less fixed coupons."""
+    """Approximate a receive-floating, pay-fixed swap at a coupon reset date."""
     fixed_leg = fixed_rate_bond(name, notional, fixed_rate, maturity, payments_per_year)
-    amounts = -fixed_leg.amounts
-    amounts[-1] += notional
-    return CashflowPosition(name, fixed_leg.times, amounts)
+    times = np.concatenate(([1e-9], fixed_leg.times))
+    amounts = np.concatenate(([notional], -fixed_leg.amounts))
+    return CashflowPosition(name, times, amounts)
