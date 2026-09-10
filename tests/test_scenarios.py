@@ -25,3 +25,8 @@ def test_parallel_increase_changes_surplus_by_revaluation() -> None:
 def test_standard_scenarios_match_curve_length() -> None:
     curve = bundled_market().curve
     assert all(len(item.shifts_bp) == len(curve.tenors) for item in standard_scenarios(curve))
+
+
+def test_2008_replay_uses_full_year_fred_change() -> None:
+    replay = standard_scenarios(bundled_market().curve)[-1]
+    assert replay.shifts_bp == (-212, -173, -166, -134, -166)

@@ -13,6 +13,7 @@ class Breach:
     status: str
     observed: float
     limit: float
+    scenario: str = "Base"
 
 
 def assess_limits(

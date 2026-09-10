@@ -26,7 +26,7 @@ def standard_scenarios(curve: ZeroCurve) -> list[Scenario]:
         Scenario("Rates -100 bp", tuple(np.full(len(tenor), -100.0))),
         Scenario("Steepener", steepener),
         Scenario("Flattener", flattener),
-        Scenario("2008 replay", (-142, -142, -147, -145, -164)),
+        Scenario("2008 replay", (-212, -173, -166, -134, -166)),
     ]
 
 

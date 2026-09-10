@@ -10,7 +10,7 @@ from alm_hedge_lab.hedge import capital_proxy, effectiveness_tests, pnl_attribut
 from alm_hedge_lab.market_data import fetch_fred_curve
 from alm_hedge_lab.reporting import assess_limits
 from alm_hedge_lab.repositioning import recommend_long_end_trade
-from alm_hedge_lab.sample import bundled_market, sample_balance_sheet
+from alm_hedge_lab.sample import bundled_history, bundled_market, sample_balance_sheet
 from alm_hedge_lab.scenarios import scenario_results, standard_scenarios
 from alm_hedge_lab.validation import ValidationError, validate_market
 
@@ -114,6 +114,24 @@ with overview:
             width="stretch",
         )
 
+    st.subheader("Duration gap history")
+    history = pd.DataFrame(
+        {
+            "date": item.as_of,
+            "duration gap": balance_sheet.duration_gap(item.curve),
+        }
+        for item in bundled_history()
+    ).set_index("date")
+    history["warning +"] = 0.5
+    history["warning -"] = -0.5
+    history["limit +"] = 1.0
+    history["limit -"] = -1.0
+    st.line_chart(
+        history,
+        color=["#315b47", "#c28a32", "#c28a32", "#a2432f", "#a2432f"],
+    )
+    st.caption("Month-end FRED curves through the bundled snapshot. Positions are held constant.")
+
     recommendation = recommend_long_end_trade(balance_sheet, curve)
     st.subheader("Repositioning ticket")
     if recommendation:
@@ -159,6 +177,7 @@ with erm:
                 "status": item.status,
                 "observed": item.observed,
                 "limit": item.limit,
+                "scenario": item.scenario,
             }
             for item in breaches
         )

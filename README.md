@@ -50,7 +50,7 @@ The live curve comes from the Federal Reserve Bank of St. Louis FRED CSV service
 
 FRED publishes Treasury constant-maturity par yields. This project treats them as zero rates to keep the pricing code inspectable. A production model would bootstrap discount factors from instrument prices.
 
-The 2008 replay uses the change between 2 January and 31 December 2008, rounded to whole basis points at each available tenor. It is a historical curve shift applied to the current book, not a recreation of 2008 spreads or liquidity conditions.
+The 2008 replay uses the change between 2 January and 31 December 2008, rounded to whole basis points at each tenor. It is a historical curve shift applied to the current book, not a recreation of 2008 spreads or liquidity conditions.
 
 ## Limits
 
