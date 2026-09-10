@@ -19,12 +19,135 @@ st.set_page_config(page_title="ALM Hedge Lab", page_icon=None, layout="wide")
 st.markdown(
     """
     <style>
-    [data-testid="stAppViewContainer"] { background: #f3f0e8; color: #17231d; }
-    [data-testid="stHeader"] { background: transparent; }
-    h1, h2, h3 { font-family: Georgia, serif; color: #17231d; letter-spacing: -.025em; }
-    [data-testid="stMetric"] { border-top: 2px solid #17231d; padding-top: .75rem; }
-    .eyebrow { font: 700 .72rem/1.2 monospace; letter-spacing: .12em; text-transform: uppercase; color: #a2432f; }
-    .source { color: #59645d; font-size: .86rem; }
+    :root {
+        --ink: #17231d;
+        --muted: #667069;
+        --paper: #f4f1e9;
+        --surface: #fbfaf6;
+        --line: #d8d3c6;
+        --accent: #9f3f2c;
+        --positive: #315b47;
+    }
+
+    html { scroll-behavior: smooth; }
+    [data-testid="stAppViewContainer"] {
+        background: var(--paper);
+        color: var(--ink);
+    }
+    [data-testid="stHeader"] { background: color-mix(in srgb, var(--paper) 88%, transparent); }
+    [data-testid="stMainBlockContainer"] {
+        max-width: 92rem;
+        padding: 3.5rem 3.25rem 5rem;
+    }
+
+    h1, h2, h3, p, label { color: var(--ink); }
+    h1 {
+        font-size: clamp(2.4rem, 4vw, 4.25rem) !important;
+        line-height: .98 !important;
+        letter-spacing: -.055em !important;
+        margin: .4rem 0 1rem !important;
+    }
+    h2, h3 {
+        letter-spacing: -.035em !important;
+        line-height: 1.08 !important;
+    }
+    [data-testid="stCaptionContainer"] { color: var(--muted); }
+    .eyebrow {
+        margin: 0;
+        font: 700 .72rem/1.2 ui-monospace, SFMono-Regular, Consolas, monospace;
+        letter-spacing: .12em;
+        text-transform: uppercase;
+        color: var(--accent);
+    }
+
+    [data-testid="stSidebar"] {
+        background: #20261f;
+        border-right: 1px solid #30382f;
+    }
+    [data-testid="stSidebarContent"] { padding: 2rem 1.35rem; }
+    [data-testid="stSidebar"] p,
+    [data-testid="stSidebar"] label,
+    [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] {
+        color: #eef0ea;
+    }
+    [data-testid="stSidebar"] [data-testid="stAlert"] {
+        border: 1px solid #3c493f;
+        border-radius: .45rem;
+        background: #293129;
+        padding: .8rem .9rem;
+    }
+    [data-testid="stSidebar"] [data-testid="stAlert"] p {
+        color: #dfe5dd;
+        font-size: .9rem;
+        line-height: 1.55;
+    }
+    [data-testid="stSidebar"] [data-baseweb="notification"] { box-shadow: none; }
+
+    [data-testid="stTabs"] [data-baseweb="tab-list"] {
+        gap: 1.75rem;
+        border-bottom: 1px solid var(--line);
+    }
+    [data-testid="stTabs"] button[role="tab"] {
+        color: var(--muted);
+        padding: .75rem 0 .8rem;
+        transition: color 160ms ease;
+    }
+    [data-testid="stTabs"] button[role="tab"]:hover { color: var(--ink); }
+    [data-testid="stTabs"] button[role="tab"][aria-selected="true"] {
+        color: var(--accent);
+        font-weight: 650;
+    }
+
+    [data-testid="stMetric"] {
+        min-height: 8.5rem;
+        margin: 1.25rem 0 2.25rem;
+        padding: 1.15rem 1.25rem 1.3rem;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-top: 3px solid var(--ink);
+        border-radius: 0 0 .5rem .5rem;
+    }
+    [data-testid="stMetricLabel"] p {
+        color: var(--muted) !important;
+        font-size: .78rem !important;
+        font-weight: 700 !important;
+        letter-spacing: .07em;
+        text-transform: uppercase;
+    }
+    [data-testid="stMetricValue"] {
+        color: var(--ink) !important;
+        font-size: clamp(1.65rem, 2.3vw, 2.5rem) !important;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: -.04em;
+    }
+    [data-testid="stMetricDelta"] { font-variant-numeric: tabular-nums; }
+
+    [data-testid="stDataFrame"] {
+        border: 1px solid var(--line);
+        border-radius: .5rem;
+        overflow: hidden;
+    }
+    [data-testid="stDataFrame"] * { font-variant-numeric: tabular-nums; }
+    [data-testid="stPlotlyChart"], [data-testid="stVegaLiteChart"], [data-testid="stPyplot"] {
+        border: 1px solid var(--line);
+        border-radius: .5rem;
+        background: var(--surface);
+        padding: .5rem;
+    }
+    [data-testid="stAlert"] {
+        border-radius: .45rem;
+        box-shadow: none;
+    }
+    button:focus-visible, [tabindex="0"]:focus-visible {
+        outline: 2px solid var(--accent) !important;
+        outline-offset: 2px;
+    }
+
+    @media (max-width: 900px) {
+        [data-testid="stMainBlockContainer"] { padding: 2.5rem 1.25rem 4rem; }
+        [data-testid="stMetric"] { margin: .6rem 0; min-height: 7.25rem; }
+        [data-testid="stTabs"] [data-baseweb="tab-list"] { gap: 1rem; overflow-x: auto; }
+    }
     </style>
     """,
     unsafe_allow_html=True,
@@ -42,13 +165,16 @@ def money(value: float) -> str:
 
 def risk_chart(ladder: dict[float, float]):
     figure, axis = plt.subplots(figsize=(8, 3.4))
-    figure.patch.set_facecolor("#f3f0e8")
-    axis.set_facecolor("#f3f0e8")
-    colors = ["#a2432f" if value < 0 else "#315b47" for value in ladder.values()]
+    figure.patch.set_facecolor("#fbfaf6")
+    axis.set_facecolor("#fbfaf6")
+    colors = ["#9f3f2c" if value < 0 else "#315b47" for value in ladder.values()]
     axis.bar([f"{tenor:g}Y" for tenor in ladder], ladder.values(), color=colors, width=0.62)
     axis.axhline(0, color="#17231d", linewidth=0.8)
     axis.spines[["top", "right", "left"]].set_visible(False)
-    axis.tick_params(axis="y", length=0)
+    axis.spines["bottom"].set_color("#8a908b")
+    axis.tick_params(axis="both", colors="#39443e", length=0, labelsize=9)
+    axis.grid(axis="y", color="#ded9cd", linewidth=0.7, alpha=0.8)
+    axis.set_axisbelow(True)
     axis.set_ylabel("PV01, USD")
     figure.tight_layout()
     return figure
