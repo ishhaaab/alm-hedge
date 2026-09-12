@@ -28,5 +28,21 @@ def test_standard_scenarios_match_curve_length() -> None:
 
 
 def test_2008_replay_uses_full_year_fred_change() -> None:
-    replay = standard_scenarios(bundled_market().curve)[-1]
-    assert replay.shifts_bp == (-212, -173, -166, -134, -166)
+    scenarios = {item.name: item for item in standard_scenarios(bundled_market().curve)}
+    assert scenarios["2008 replay"].shifts_bp == (-212, -173, -166, -134, -166)
+
+
+def test_standard_grid_covers_parallel_twist_and_key_rate_moves() -> None:
+    scenarios = standard_scenarios(bundled_market().curve)
+    assert len(scenarios) >= 10
+    names = [item.name for item in scenarios]
+    assert "Rates +50 bp" in names
+    assert "Steepener +50%" in names
+    assert "2Y +25 bp" in names
+    assert "30Y -25 bp" in names
+
+
+def test_key_rate_shocks_isolate_a_single_node() -> None:
+    scenarios = {item.name: item for item in standard_scenarios(bundled_market().curve)}
+    assert scenarios["5Y +25 bp"].shifts_bp == (0.0, 25.0, 0.0, 0.0, 0.0)
+    assert scenarios["30Y -25 bp"].shifts_bp == (0.0, 0.0, 0.0, 0.0, -25.0)
