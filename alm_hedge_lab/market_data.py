@@ -5,11 +5,14 @@ import io
 from datetime import date, datetime
 from urllib.request import urlopen
 
-from .curves import ZeroCurve
+from .curves import QUOTED_TENORS, bootstrap_zero_curve
 from .sample import MarketSnapshot
 
 
-FRED_SERIES = {2: "DGS2", 5: "DGS5", 10: "DGS10", 20: "DGS20", 30: "DGS30"}
+FRED_SERIES = {
+    int(tenor): series
+    for tenor, series in zip(QUOTED_TENORS, ("DGS2", "DGS5", "DGS10", "DGS20", "DGS30"))
+}
 
 
 def fetch_fred_curve(timeout: float = 10) -> MarketSnapshot:
@@ -26,5 +29,5 @@ def fetch_fred_curve(timeout: float = 10) -> MarketSnapshot:
         raise ValueError("FRED series have no common complete observation")
     latest = complete[-1]
     as_of = datetime.strptime(latest["observation_date"], "%Y-%m-%d").date()
-    rates = [float(latest[series_id]) / 100 for series_id in FRED_SERIES.values()]
-    return MarketSnapshot(as_of, ZeroCurve(list(FRED_SERIES), rates), "FRED")
+    par_yields = [float(latest[series_id]) / 100 for series_id in FRED_SERIES.values()]
+    return MarketSnapshot(as_of, bootstrap_zero_curve(tuple(FRED_SERIES), par_yields), "FRED")

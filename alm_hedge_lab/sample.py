@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date
 
-from .curves import ZeroCurve
+from .curves import QUOTED_TENORS, ZeroCurve, bootstrap_zero_curve
 from .instruments import declining_annuity, fixed_rate_bond, payer_swap
 from .portfolio import BalanceSheet, Portfolio
 
@@ -35,15 +35,14 @@ HISTORICAL_CURVES = [
 def bundled_market() -> MarketSnapshot:
     return MarketSnapshot(
         as_of=date(2025, 1, 2),
-        curve=ZeroCurve([2, 5, 10, 20, 30], [0.0425, 0.0438, 0.0457, 0.0486, 0.0479]),
+        curve=bootstrap_zero_curve(QUOTED_TENORS, [0.0425, 0.0438, 0.0457, 0.0486, 0.0479]),
         source="Bundled FRED snapshot",
     )
 
 
 def bundled_history() -> list[MarketSnapshot]:
-    tenors = [2, 5, 10, 20, 30]
     return [
-        MarketSnapshot(as_of, ZeroCurve(tenors, rates), "FRED historical snapshot")
+        MarketSnapshot(as_of, bootstrap_zero_curve(QUOTED_TENORS, rates), "FRED historical snapshot")
         for as_of, rates in HISTORICAL_CURVES
     ]
 
