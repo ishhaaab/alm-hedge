@@ -30,6 +30,10 @@ def effectiveness_tests(
     curve: ZeroCurve,
     scenarios: list[Scenario],
 ) -> list[HedgeTest]:
+    if len(scenarios) < 10:
+        raise ValueError(
+            f"effectiveness tests need at least 10 scenarios, got {len(scenarios)}"
+        )
     hedge_base = hedges.present_value(curve)
     liability_base = liabilities.present_value(curve)
     hedge_moves = np.array(
@@ -43,11 +47,16 @@ def effectiveness_tests(
     dollar_offset = (
         np.sum(np.abs(hedge_moves)) / total_liability_move if total_liability_move else 0.0
     )
-    slope, intercept = np.polyfit(hedge_moves, liability_moves, 1)
-    fitted = slope * hedge_moves + intercept
-    residual = np.sum((liability_moves - fitted) ** 2)
-    total = np.sum((liability_moves - np.mean(liability_moves)) ** 2)
-    r_squared = 1 - residual / total if total else 0.0
+    hedge_variance = float(np.sum((hedge_moves - np.mean(hedge_moves)) ** 2))
+    if hedge_variance <= 0:
+        slope, r_squared = 0.0, 0.0
+    else:
+        slope, intercept = np.polyfit(hedge_moves, liability_moves, 1)
+        fitted = slope * hedge_moves + intercept
+        residual = np.sum((liability_moves - fitted) ** 2)
+        total = np.sum((liability_moves - np.mean(liability_moves)) ** 2)
+        r_squared = 1 - residual / total if total else 0.0
+        slope = float(slope)
 
     hedge_ladder = hedges.pv01_ladder(curve)
     liability_ladder = liabilities.pv01_ladder(curve)
