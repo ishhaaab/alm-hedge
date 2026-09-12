@@ -265,7 +265,8 @@ with overview:
         st.write(
             f"{action} **${abs(recommendation.face_value) / 1_000_000:,.2f}m** face of "
             f"{recommendation.instrument}. Estimated 10Y+ PV01 moves from "
-            f"${recommendation.before_pv01:,.0f} to ${recommendation.after_pv01:,.0f}."
+            f"${recommendation.before_pv01:,.0f} to ${recommendation.after_pv01:,.0f}. "
+            f"Turnover ${recommendation.turnover:,.0f}, est. cost ${recommendation.transaction_cost:,.0f}."
         )
     else:
         st.success("Long-end PV01 is inside the $5,000 limit. No trade required.")
