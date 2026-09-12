@@ -21,8 +21,8 @@ class CashflowPosition:
             raise ValueError("times and amounts must be one-dimensional")
         if len(time_array) == 0 or len(time_array) != len(amount_array):
             raise ValueError("times and amounts must have the same non-zero length")
-        if np.any(time_array <= 0) or np.any(np.diff(time_array) <= 0):
-            raise ValueError("cashflow times must be positive and strictly increasing")
+        if np.any(time_array < 0) or np.any(np.diff(time_array) <= 0):
+            raise ValueError("cashflow times must be non-negative and strictly increasing")
         if not np.all(np.isfinite(amount_array)):
             raise ValueError("cashflow amounts must be finite")
 
@@ -89,8 +89,15 @@ def payer_swap(
     maturity: int,
     payments_per_year: int = 2,
 ) -> CashflowPosition:
-    """Approximate a receive-floating, pay-fixed swap at a coupon reset date."""
+    """Approximate a receive-floating, pay-fixed swap at a coupon reset date.
+
+    At a reset date the floating leg is worth par. The next fixing is set and
+    later fixings wash out in expectation, so only the notional exchanged
+    at time zero remains. The model collapses that remaining value into a
+    single cashflow at time zero rather than projecting fixings between
+    resets, which keeps the position a static ``CashflowPosition``.
+    """
     fixed_leg = fixed_rate_bond(name, notional, fixed_rate, maturity, payments_per_year)
-    times = np.concatenate(([1e-9], fixed_leg.times))
+    times = np.concatenate(([0.0], fixed_leg.times))
     amounts = np.concatenate(([notional], -fixed_leg.amounts))
     return CashflowPosition(name, times, amounts)
