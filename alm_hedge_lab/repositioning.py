@@ -22,17 +22,19 @@ class TradeRecommendation:
 
 @dataclass(frozen=True)
 class TradeCandidate:
+    """A hedge candidate priced under the caller's trading assumptions.
+
+    ``transaction_cost_bp`` and ``lot_size`` are inputs, not market data. The
+    app lets the user set them in the sidebar, so nobody mistakes an assumption
+    for a fact that was looked up.
+    """
+
     name: str
     maturity: float
     coupon_rate: float
-    transaction_cost_bp: float = 5.0
-    lot_size: float = 100_000.0
+    transaction_cost_bp: float
+    lot_size: float
 
-
-DEFAULT_CANDIDATES = (
-    TradeCandidate("20Y Treasury", 20, 0.045, transaction_cost_bp=5.0),
-    TradeCandidate("30Y Treasury", 30, 0.0475, transaction_cost_bp=7.0),
-)
 
 # Tenors at or above this count as the "long end" of the surplus ladder.
 LONG_END_FROM_TENOR = 10.0
@@ -57,17 +59,20 @@ def _long_end_risk(positions: Iterable[CashflowPosition], curve: ZeroCurve) -> f
 def recommend_long_end_trade(
     balance_sheet: BalanceSheet,
     curve: ZeroCurve,
-    limit: float = 5_000,
-    candidates: tuple[TradeCandidate, ...] = DEFAULT_CANDIDATES,
+    limit: float,
+    candidates: tuple[TradeCandidate, ...],
 ) -> TradeRecommendation | None:
-    """Pick the cheapest single-tranche Treasury trade that restores the limit.
+    """Pick the cheapest candidate Treasury trade that restores the limit.
 
-    Each candidate is priced at par (face value as clean price), scaled to the
-    face that moves 10Y+ surplus PV01 exactly onto the nearer limit edge, then
+    The caller supplies the candidates and the assumptions that price them:
+    trading cost in basis points and lot size. The app exposes those in the
+    sidebar so the ticket reads as a set of inputs, not market facts. Each
+    candidate is priced at par (face value as clean price), scaled to the
+    face that moves 10Y+ surplus PV01 onto the nearer limit edge, then
     rounded up to the candidate lot size. Candidates that cannot reach the
     limit, round to zero face, or cost more than the capital the PV01 repair
-    releases are reported as not economical (``None``). The cheapest compliant
-    trade wins; ties break toward lower turnover.
+    releases are reported as not economical (``None``). The cheapest
+    compliant trade wins; ties break toward lower turnover.
     """
     ladder = balance_sheet.surplus_pv01_ladder(curve)
     before = _long_end_pv01(ladder)
@@ -82,6 +87,8 @@ def recommend_long_end_trade(
     for candidate in candidates:
         if candidate.lot_size <= 0:
             raise ValueError(f"{candidate.name}: lot size must be positive")
+        if candidate.transaction_cost_bp < 0:
+            raise ValueError(f"{candidate.name}: cost must be non-negative")
         unit = fixed_rate_bond(candidate.name, 1_000_000, candidate.coupon_rate, candidate.maturity)
         unit_risk = _long_end_risk([unit], curve)
         # A candidate works only if its risk has the same sign as the gap, so

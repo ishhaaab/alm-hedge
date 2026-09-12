@@ -34,7 +34,7 @@ The ALM monitor reports:
 - Full revaluation under parallel shocks, twists, and a 2008 replay
 - A Treasury trade that pulls 10Y+ PV01 back inside the $5,000 limit
 
-The trade picker prices each candidate 20Y/30Y Treasury at par, rounds up to $100k lots, adds a per-trade cost in basis points, and takes the cheapest trade that lands inside the limit. It drops any trade whose cost exceeds the capital the repair releases (the 15% capital proxy times a 100 bp move). If no candidate gets there at a sane cost, it reports no trade instead of forcing one.
+The trade picker prices each candidate 20Y/30Y Treasury at par, rounds up to a lot size, and takes the cheapest trade that lands inside the limit. Trading cost, lot size, and the PV01 limit are assumptions you set in the sidebar; the model does not look them up. It drops any trade whose cost exceeds the capital the repair releases (the 15% capital proxy times a 100 bp move). If no candidate gets there at a sane cost, it reports no trade instead of forcing one.
 
 The hedge review runs 20 scenarios, not 5. Parallel moves, twists, a 2008 replay plus a half-size version, and single-node shocks at each tenor. It reports dollar offset, regression fit, key-rate coverage, and scenario P&L attribution. The regression refuses to run on fewer than 10 scenarios and flatlines at zero when the hedge legs do not move, instead of printing a fit on noise. Validation stops a live run when the curve is stale, incomplete, or fails the PV01 reconciliation check.
 
@@ -58,7 +58,7 @@ The 2008 replay uses the change between 2 January and 31 December 2008, rounded 
 
 - Swaps are valued at a coupon reset date. The floating leg collapses to par at time zero and the model does not project fixings between resets.
 - Cashflows are deterministic. No lapses, mortality changes, optionality, or credit spreads.
-- The picker buys one Treasury tranche at par. It ignores bid/ask shape, funding, and repo.
+- The picker buys one Treasury tranche at par. Trading costs are assumptions you set, not market data; the model ignores how real bid/ask quotes move, funding, and repo.
 - The capital proxy charges 15% of the loss implied by a 100 bp move against each residual key-rate PV01.
 
 On the bundled book the hedge passes dollar offset and regression but fails key-rate coverage at about 73% against the 80% bar. The 20Y bucket stays short and twists expose it. I think that is the honest result here. A hedge can look fine in aggregate and still leave a concentrated tenor bet on.

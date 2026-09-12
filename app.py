@@ -9,7 +9,7 @@ import streamlit as st
 from alm_hedge_lab.hedge import capital_proxy, effectiveness_tests, pnl_attribution
 from alm_hedge_lab.market_data import fetch_fred_curve
 from alm_hedge_lab.reporting import assess_limits
-from alm_hedge_lab.repositioning import recommend_long_end_trade
+from alm_hedge_lab.repositioning import TradeCandidate, recommend_long_end_trade
 from alm_hedge_lab.sample import bundled_history, bundled_market, sample_balance_sheet
 from alm_hedge_lab.scenarios import scenario_results, standard_scenarios
 from alm_hedge_lab.validation import ValidationError, validate_market
@@ -216,6 +216,39 @@ st.sidebar.markdown("**Validation**")
 for check in checks:
     st.sidebar.success(f"{check.name}: {check.detail}")
 
+st.sidebar.markdown("**Trade assumptions**")
+st.sidebar.caption("Inputs you set. The model does not look these up.")
+trade_limit = st.sidebar.number_input(
+    "Long-end PV01 limit, $",
+    min_value=100.0,
+    max_value=100_000.0,
+    value=5_000.0,
+    step=500.0,
+)
+candidates: list[TradeCandidate] = []
+for name, maturity, coupon in (
+    ("20Y Treasury", 20.0, 0.045),
+    ("30Y Treasury", 30.0, 0.0475),
+):
+    cost_bp = st.sidebar.number_input(
+        f"{name} cost, bp",
+        min_value=0.0,
+        max_value=50.0,
+        value=5.0,
+        step=0.5,
+    )
+    lot_size = st.sidebar.number_input(
+        f"{name} lot size, $",
+        min_value=1_000.0,
+        max_value=10_000_000.0,
+        value=100_000.0,
+        step=10_000.0,
+    )
+    candidates.append(
+        TradeCandidate(name, maturity, coupon, transaction_cost_bp=cost_bp, lot_size=lot_size)
+    )
+candidates = tuple(candidates)
+
 overview, hedge_tab, erm = st.tabs(["ALM monitor", "Hedge review", "ERM summary"])
 
 with overview:
@@ -258,8 +291,22 @@ with overview:
     )
     st.caption("Month-end FRED curves through the bundled snapshot. Positions are held constant.")
 
-    recommendation = recommend_long_end_trade(balance_sheet, curve)
+    recommendation = recommend_long_end_trade(balance_sheet, curve, trade_limit, candidates)
     st.subheader("Repositioning ticket")
+    assumption_frame = pd.DataFrame(
+        {
+            "instrument": candidate.name,
+            "cost, bp": candidate.transaction_cost_bp,
+            "lot size, $": candidate.lot_size,
+        }
+        for candidate in candidates
+    )
+    st.dataframe(
+        assumption_frame.style.format({"lot size, $": "${:,.0f}"}),
+        hide_index=True,
+        width="stretch",
+    )
+    st.caption("Assumed trading costs and lot sizes, set in the sidebar.")
     if recommendation:
         action = "Buy" if recommendation.face_value > 0 else "Sell"
         st.write(
@@ -269,7 +316,7 @@ with overview:
             f"Turnover ${recommendation.turnover:,.0f}, est. cost ${recommendation.transaction_cost:,.0f}."
         )
     else:
-        st.success("Long-end PV01 is inside the $5,000 limit. No trade required.")
+        st.success(f"Long-end PV01 is inside the ${trade_limit:,.0f} limit. No trade required.")
 
 with hedge_tab:
     st.subheader("Effectiveness tests")
